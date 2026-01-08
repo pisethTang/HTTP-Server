@@ -23,3 +23,7 @@ Implementing epoll, sendfile, thread pools and zero-copy I/O (sendfile)
 - Syscalls: epoll_create, epoll_ctl, epoll_wait, sendfile.
 - Concepts: The C10k problem, Edge Triggered vs. Level Triggered events, Thread Pools (avoiding fork overhead).
 - Deliverable: A server capable of handling thousands of concurrent connections with minimal CPU usage.
+
+References:
+- https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/pages/calendar/
+- https://www.youtube.com/watch?v=2hNdkYInj4g
