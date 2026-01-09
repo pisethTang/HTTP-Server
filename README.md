@@ -52,7 +52,8 @@ flowchart TD
 
 ```
 
-## 📦 Installation & UsageThis project requires a Linux environment (or WSL2 on Windows) due to its dependency on the Linux Kernel API (epoll, sendfile).
+## 📦 Installation & Usage
+This project requires a Linux environment (or WSL2 on Windows) due to its dependency on the Linux Kernel API (epoll, sendfile).
 
 1. Build the Project
    Ensure you have g++ installed. The -pthread flag is required for concurrency.Bash# Compile the server
