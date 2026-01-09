@@ -10,6 +10,80 @@
 #include <string>
 
 
+#include <sys/wait.h> // for waitpid()
+#include <vector>
+
+
+
+std::string exec_cgi() {
+    int pipefd[2];
+    // 1. Create a Pipe
+    // pipefd[0] is for READING (Parent uses this)
+    // pipefd[1] is for WRITING (Child uses this)
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        return "Internal Server Error";
+    }
+
+    // 2. Fork the Process
+    pid_t pid = fork();
+
+    if (pid == -1) {
+        perror("fork");
+        return "Internal Server Error";
+    }
+
+    if (pid == 0) {
+        // --- CHILD PROCESS (Will become Python) ---
+        
+        // A. Close the READ end (Child doesn't read from itself)
+        close(pipefd[0]);
+
+        // B. Redirect STDOUT to the WRITE end of the pipe
+        // Now, anything Python prints goes into the pipe, not the screen.
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[1]); // Close original FD after duplication
+
+        // C. Execute the Script
+        // execve requires C-style arrays of char*
+        char* script = (char*)"./time_server.py";
+        char* interpreter = (char*)"/usr/bin/python3";
+        char* argv[] = {interpreter, script, NULL}; // Arguments: [Program, Script, NULL]
+        char* envp[] = {NULL}; // Environment variables
+
+        // execve REPLACES the current process with Python.
+        // If successful, this code effectively STOPS running here.
+        if (execve(interpreter, argv, envp) == -1) {
+            perror("execve");
+            exit(1); // Kill child if exec fails
+        }
+    } 
+    else {
+        // --- PARENT PROCESS (The C++ Server) ---
+        
+        // A. Close the WRITE end (Parent only reads)
+        // CRITICAL: If you don't close this, read() will hang forever waiting for EOF!
+        close(pipefd[1]); 
+
+        // B. Read the output from the Child
+        std::string result;
+        char buffer[128];
+        ssize_t bytesRead;
+        while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0) {
+            buffer[bytesRead] = '\0'; // Null-terminate
+            result += buffer;
+        }
+        close(pipefd[0]);
+
+        // C. Wait for the Child to die (Reaping the Zombie)
+        waitpid(pid, nullptr, 0); 
+        
+        return result;
+    }
+
+    return ""; // Should not reach here
+}
+
 
 // a helpter to read a file into a string 
 std::string load_file(const std::string& filename){
@@ -61,6 +135,7 @@ int main(){
   }
 
   std::cout << "Server listening on port 8080 ... waiting for connections. \n";
+  std::cout << "Ctrl + Click on: http://localhost:8080\n";
 
   // The Kernel is now handling "SYN/SYN-ACK/ACK" automatically in the background.
 
@@ -105,7 +180,12 @@ int main(){
     if (path == "/"){
       response_body = load_file("index.html");
       status_line = "HTTP/1.1 200 OK\r\n";
-    } else {
+    } 
+    else if (path == "/time"){
+      response_body = exec_cgi();
+      status_line = "HTTP/1.1 200 OK\r\n";
+    } 
+    else {
       // 404 Not Found error handling
       response_body = "<html><h1>404 Not Found</h1></html>";
       status_line = "HTTP/1.1 404 Not Found\r\n";

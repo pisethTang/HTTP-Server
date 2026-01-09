@@ -1,0 +1,12 @@
+Starting to get into the habit of documenting:
+
+
+1. pipe(): Create a data channel (Read End / Write End).
+
+2. fork(): Clone the server process. Now we have Parent (Server) and Child (will become Python).
+
+3. dup2(): (Inside Child) "Plug" the Pipe's Write End into stdout. Now, anything Python prints goes into the pipe, not the screen.
+
+4. execve(): (Inside Child) Replace the running process with /usr/bin/python3.
+
+5. read(): (Inside Parent) Read the pipe to get the Python output.
