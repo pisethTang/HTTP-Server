@@ -15,6 +15,37 @@
 
 
 
+#include <sys/epoll.h> // the linux event poll api 
+#include <fcntl.h> // to set non-blocking flags 
+
+
+#include "ThreadPool.h" 
+#include "HttpParser.h"
+#include "ServerStats.h"
+
+#include <sys/stat.h>
+
+
+
+
+// ======================================================================
+
+#include <mutex>
+
+
+
+// Global Instance (Simple for this demo)
+ServerStats global_stats;
+
+
+
+void set_nonblocking(int fd){
+  // force 
+  int flags = fcntl(fd, F_GETFL, 0);
+  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+
 std::string exec_cgi() {
     int pipefd[2];
     // 1. Create a Pipe
@@ -97,6 +128,118 @@ std::string load_file(const std::string& filename){
 }
 
 
+std::string get_mime_type(const std::string& path) {
+    if (path.find(".html") != std::string::npos) return "text/html";
+    if (path.find(".css") != std::string::npos) return "text/css";
+    if (path.find(".js") != std::string::npos) return "application/javascript";
+    if (path.find(".png") != std::string::npos) return "image/png";
+    if (path.find(".jpg") != std::string::npos) return "image/jpeg";
+    if (path.find(".ico") != std::string::npos) return "image/x-icon";
+    return "text/plain";
+}
+
+void handle_client(int client_fd) {
+    global_stats.increment_requests();
+    char buffer[30000] = {0};
+    ssize_t bytes_read = read(client_fd, buffer, 30000);
+
+    if (bytes_read > 0) {
+        std::string raw_data(buffer, bytes_read);
+        HttpRequest req = HttpParser::parse(raw_data);
+        std::string status_line, response_headers, response_body;
+        
+        // --- 1. COOKIE LOGIC ---
+        // Check if user has a cookie. If not, set one.
+        bool is_new_user = true;
+        std::string set_cookie_header = "";
+        
+        if (req.headers.count("Cookie") && req.headers["Cookies"].find("session_id=") != std::string::npos) {
+            // In a real app, we would check if the session ID is valid
+            is_new_user = false;
+        } else {
+            set_cookie_header = "Set-Cookie: session_id=user_12345; Path=/; HttpOnly\r\n";
+        }
+
+        // --- 2. ROUTING ---
+        
+        // API: Dashboard Stats
+        if (req.method == "GET" && req.path == "/stats") {
+            response_body = global_stats.to_json();
+            status_line = "HTTP/1.1 200 OK\r\n";
+            response_headers = "Content-Type: application/json\r\n";
+        }
+        // API: File Upload (POST)
+        else if (req.method == "POST" && req.path == "/upload") {
+            std::ofstream out_file("uploaded_data.txt");
+            out_file << req.body;
+            out_file.close();
+            response_body = "File Uploaded. Size: " + std::to_string(req.body.length());
+            status_line = "HTTP/1.1 201 Created\r\n";
+            response_headers = "Content-Type: text/plain\r\n";
+        }
+        // API: DELETE File
+        else if (req.method == "DELETE") {
+            // SECURITY WARNING: In prod, you must sanitize this path to prevent deleting /etc/passwd!
+            // For now, we assume the user provides a local filename like "/uploaded_data.txt"
+            std::string filename = "." + req.path; // "/file.txt" -> "./file.txt"
+            
+            if (remove(filename.c_str()) == 0) {
+                response_body = "File deleted successfully";
+                status_line = "HTTP/1.1 200 OK\r\n";
+            } else {
+                response_body = "File not found or delete failed";
+                status_line = "HTTP/1.1 404 Not Found\r\n";
+            }
+            response_headers = "Content-Type: text/plain\r\n";
+        }
+        // STATIC FILES (The "Catch-All" for GET)
+        else if (req.method == "GET") {
+            std::string filepath = "." + req.path;
+            
+            // Default to index.html if root
+            if (req.path == "/") filepath = "./index.html";
+            if (req.path == "/dashboard") filepath = "./dashboard.html"; // Clean URL mapping
+            
+            // Check if file exists
+            struct stat buffer;
+            if (stat(filepath.c_str(), &buffer) == 0) {
+                // If special CGI path
+                if (req.path == "/time") {
+                     response_body = exec_cgi();
+                     status_line = "HTTP/1.1 200 OK\r\n";
+                     response_headers = "Content-Type: text/html\r\n";
+                } 
+                else {
+                    // STANDARD STATIC FILE
+                    response_body = load_file(filepath);
+                    status_line = "HTTP/1.1 200 OK\r\n";
+                    response_headers = "Content-Type: " + get_mime_type(filepath) + "\r\n";
+                }
+            } else {
+                // 404
+                response_body = "<h1>404 Not Found</h1>";
+                status_line = "HTTP/1.1 404 Not Found\r\n";
+                response_headers = "Content-Type: text/html\r\n";
+            }
+        }
+        else {
+             status_line = "HTTP/1.1 405 Method Not Allowed\r\n";
+        }
+
+        // --- 3. CONSTRUCT & SEND ---
+        std::string final_response = status_line + 
+                                     set_cookie_header + 
+                                     response_headers + 
+                                     "Content-Length: " + std::to_string(response_body.length()) + "\r\n" +
+                                     "Connection: close\r\n\r\n" + 
+                                     response_body;
+
+        send(client_fd, final_response.c_str(), final_response.length(), 0);
+    }
+
+    global_stats.connection_closed();
+    close(client_fd);
+}
 
 int main(){
   // create the socker 
@@ -134,76 +277,77 @@ int main(){
     return 1;
   }
 
-  std::cout << "Server listening on port 8080 ... waiting for connections. \n";
-  std::cout << "Ctrl + Click on: http://localhost:8080\n";
+  // Create 4 workers
+  ThreadPool pool(4);
 
+  std::cout << "Event Loop + Threadpool started.\nServer listening on port 8080 ... waiting for connections. \n";
+  std::cout << "Ctrl + Click on: http://localhost:8080\n";
   // The Kernel is now handling "SYN/SYN-ACK/ACK" automatically in the background.
 
-  while (true){
-    // accepts a conneciton
-    // this call blocks (i.e., the program stops here until someone connects)
-    int addrlen = sizeof(address);
-    int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
-    if (new_socket < 0){
-      std::cerr << "Accept failed\n";
-      // std::cout << "Accept failed but still continue ...\n";
-      continue;
-      // return 1;
-    }
-  
-    // 1. reads the request 
-    char buffer[30000] = {0};
-    read(new_socket, buffer, 30000); // reads up to 30000 bytes from the socket 
-
-    // std::cout << "--------- RECEIVED RAW REQUEST ----------\n";
-    // std::cout << buffer << std::endl;
-    // std::cout << "-----------------------------------------\n";
-  
-    // 2. Parse the "method" and the "Path"
-    std::istringstream request_stream(buffer);
-    std::string method, path, version;
-
-
-    // "GET / HTTP/1.1" -> method="GET", path="/", version="HTTP/1.1"
-    request_stream >> method >> path >> version;
-
-    std::cout << "Method: " << method <<  " | Path: " << path << "\n";
-  
-    // // send a basic reponse so the browser doesn't spin forever
-    // const char* hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello World!";
-    // write(new_socket, hello, 60);
-
-    // 3. Router (determine what to send back)
-    std::string response_body;
-    std::string status_line;
-
-    if (path == "/"){
-      response_body = load_file("index.html");
-      status_line = "HTTP/1.1 200 OK\r\n";
-    } 
-    else if (path == "/time"){
-      response_body = exec_cgi();
-      status_line = "HTTP/1.1 200 OK\r\n";
-    } 
-    else {
-      // 404 Not Found error handling
-      response_body = "<html><h1>404 Not Found</h1></html>";
-      status_line = "HTTP/1.1 404 Not Found\r\n";
-    }
-
-    // 4. Construct the full response 
-    std::string response = status_line +
-                            "Content-Type: text/html\r\n" +
-                            "Content-Length: " + std::to_string(response_body.length()) + "\r\n" +
-                            "\r\n" + // The blank line separating Headers from Body
-                            response_body;
-    
-    // 5. Send the data! or you will get an error (ERR_EMPTY_RESPONSE)
-    write(new_socket, response.c_str(), response.length());
-    
-    // close the socket (cleanup)
-    close(new_socket);
+  // create a list 
+  int epoll_fd = epoll_create1(0);
+  if (epoll_fd == -1){
+    perror("epoll_create1");
+    return 1;
   }
+
+
+  struct epoll_event event;
+  event.events = EPOLLIN; // since we want to read 
+  event.data.fd = server_fd; 
+
+
+  // add server socket to the watchlist 
+  if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &event) == -1){
+    perror("epoll_ctl");
+    return 1;
+  }
+
+
+  struct epoll_event events[10]; // buffer for events hapenning currently 
+
+
+  while (true) {
+        // Wait for events (Blocking here, but efficient)
+        int n_fds = epoll_wait(epoll_fd, events, 10, -1);
+
+        for (int i = 0; i < n_fds; i++) {
+            
+            // === CASE A: NEW CONNECTION ===
+            // If the "server_fd" woke up, it means a new user is knocking.
+            if (events[i].data.fd == server_fd) {
+                struct sockaddr_in client_addr;
+                socklen_t client_len = sizeof(client_addr);
+                int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+                
+                // if (client_fd == -1) {
+                //     perror("accept");
+                //     continue;
+                // }
+                if (client_fd >= 0){
+                  global_stats.connection_opened();
+                  // CRITICAL: Make the new client Non-Blocking
+                  set_nonblocking(client_fd);
+                  // Add the client to the watchlist
+                  event.events = EPOLLIN | EPOLLET; // Read + Edge Triggered
+                  event.data.fd = client_fd;
+                  epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &event);
+                }  
+
+            }
+            
+            // === CASE B: DATA RECEIVED (YOUR OLD LOGIC GOES HERE) ===
+            // If a "client_fd" woke up, it means they sent a request.
+            else {
+                int client_fd = events[i].data.fd;
+                // char buffer[30000] = {0};
+                // remove from epoll 
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client_fd, nullptr);
+
+                pool.enqueue([client_fd]{handle_client(client_fd);});
+            }
+        }
+    }
 
 
   close(server_fd);
