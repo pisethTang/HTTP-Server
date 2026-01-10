@@ -1,6 +1,6 @@
 # Titan: High-Performance Linux C++ HTTP Server
 
-![Titan Server Architecture](./Gemini_Generated_Image_auqft4auqft4auqf.png)
+![Titan Server Architecture](./flowchart.png)
 
 **Titan** is a non-blocking, event-driven web server built entirely from scratch using raw Linux system calls. It is designed to demonstrate deep understanding of operating systems, network programming, and high-concurrency architecture.
 
@@ -71,4 +71,5 @@ g++ server.cpp -o server -pthread
 ```
 
 ## 🧪 Performance Testing (The C10k Proof)
+
 <p>To verify the architecture's robustness, a Python stress-test script (stress_test.py) is included. It opens thousands of simultaneous TCP connections and holds them open, simulating heavy load. While the test is running, the server's Live Dashboard will show active connections spiking to 5,000+, yet the server remains fully responsive to new requests due to the epoll + Thread Pool design.</p>
