@@ -62,9 +62,12 @@ This project requires a Linux environment (or WSL2 on Windows) due to its depend
 g++ server.cpp -o server -pthread
 ```
 
-2. Run the ServerNeed to handle thousands of connections? Raise the process file descriptor limit first.Bash# Unlock "God Mode" (Allow many open files)
-   ulimit -n 65535
+2. Run the ServerNeed to handle thousands of connections? Raise the process file descriptor limit first.
 
+```bash
+# Allow many open files
+ulimit -n 65535
+```
 # Start the server
 
 ```bash

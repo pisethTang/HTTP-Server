@@ -5,6 +5,7 @@ import random
 
 # CONFIGURATION
 TARGET_IP = "127.0.0.1"
+# TARGET_PORT = 8080
 TARGET_PORT = 8080
 CONNECTION_COUNT = 2000  # Start with 2000. Windows/WSL might cap at ~4000 ports.
 

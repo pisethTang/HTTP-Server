@@ -173,7 +173,7 @@ void handle_client(int client_fd) {
             std::ofstream out_file("uploaded_data.txt");
             out_file << req.body;
             out_file.close();
-            response_body = "File Uploaded. Size: " + std::to_string(req.body.length());
+            response_body = "File Uploaded. Size: " + std::to_string(req.body.length()) + "\n. Check your uploaded_data.txt";
             status_line = "HTTP/1.1 201 Created\r\n";
             response_headers = "Content-Type: text/plain\r\n";
         }
@@ -260,13 +260,17 @@ int main(){
   struct sockaddr_in address; 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY; // listens on 0.0.0.0 (all interfaces)
-  address.sin_port = htons(8080); // host ot network short (converts endianness)
+
+  int PORT = 8080;
+  address.sin_port = htons(PORT); // host ot network short (converts endianness)
 
 
   // links the "server_fd" to the address config 
   if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0){
-    std::cerr << "Bind failed. Is port 8080 busy?\n";
-    return 1;
+    std::cerr << "Bind failed. Is port " << PORT <<  " busy?\n";
+    std::cout << "Switching to port " << PORT << "\n";
+    PORT = 3000;
+    // return 1;
   }
 
   // Listen 
@@ -280,8 +284,8 @@ int main(){
   // Create 4 workers
   ThreadPool pool(4);
 
-  std::cout << "Event Loop + Threadpool started.\nServer listening on port 8080 ... waiting for connections. \n";
-  std::cout << "Ctrl + Click on: http://localhost:8080\n";
+  std::cout << "Event Loop + Threadpool started.\nServer listening on port " << PORT << " ... waiting for connections. \n";
+  std::cout << "Ctrl + Click on: http://localhost:" << PORT << "\n";
   // The Kernel is now handling "SYN/SYN-ACK/ACK" automatically in the background.
 
   // create a list 
