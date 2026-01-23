@@ -1,0 +1,12 @@
+# Don't copy the compiled binary (we'll rebuild it)
+server
+
+# Don't copy git files
+.git
+.gitignore
+
+# Don't copy uploaded data
+uploaded_data.txt
+
+# Don't copy README (optional, but saves space)
+*.md
