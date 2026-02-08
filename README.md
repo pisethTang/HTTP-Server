@@ -4,7 +4,7 @@
 
 **Titan** is a non-blocking, event-driven web server built entirely from scratch using raw Linux system calls. It is designed to demonstrate deep understanding of operating systems, network programming, and high-concurrency architecture.
 
-Unlike typical university projects that use blocking I/O or high-level libraries like Boost.Asio, Titan talks directly to the Kernel using `epoll` and a custom Thread Pool, achieving **O(1) I/O scalability** and easily handling the "C10k Problem" (10,000+ simultaneous connections) on standard hardware.
+Unlike typical university projects that use blocking I/O or high-level libraries like Boost.Asio, Titan talks directly to the Kernel using `epoll` and a custom Thread Pool, achieving **O(1) I/O scalability** and easily handling the [C10k Problem](https://en.wikipedia.org/wiki/C10k_problem) (10,000+ simultaneous connections) on standard hardware.
 
 ---
 

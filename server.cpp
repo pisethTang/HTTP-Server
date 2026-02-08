@@ -138,6 +138,9 @@ std::string get_mime_type(const std::string& path) {
     return "text/plain";
 }
 
+
+
+// request handling
 void handle_client(int client_fd) {
     global_stats.increment_requests();
     char buffer[30000] = {0};
@@ -168,6 +171,27 @@ void handle_client(int client_fd) {
             status_line = "HTTP/1.1 200 OK\r\n";
             response_headers = "Content-Type: application/json\r\n";
         }
+        // API: Trigger Stress Test
+        else if (req.method == "GET" && req.path.find("/trigger-stress") == 0) {
+            // Parse query parameter: /trigger-stress?count=500
+            int count = 100; // Default
+            size_t count_pos = req.path.find("count=");
+            if (count_pos != std::string::npos) {
+                count = std::stoi(req.path.substr(count_pos + 6));
+            }
+            
+            // Build shell command: seq N | xargs -P 100 curl
+            std::string cmd = "seq " + std::to_string(count) + 
+                            " | xargs -P 100 -I {} curl -s -o /dev/null http://127.0.0.1:8080/ &";
+            
+            // Execute in background
+            system(cmd.c_str());
+            
+            response_body = "{\"status\":\"started\",\"count\":" + std::to_string(count) + "}";
+            status_line = "HTTP/1.1 200 OK\r\n";
+            response_headers = "Content-Type: application/json\r\n"
+                             "Access-Control-Allow-Origin: *\r\n";
+        }
         // API: File Upload (POST)
         else if (req.method == "POST" && req.path == "/upload") {
             std::ofstream out_file("uploaded_data.txt");
@@ -194,32 +218,32 @@ void handle_client(int client_fd) {
         }
         // STATIC FILES (The "Catch-All" for GET)
         else if (req.method == "GET") {
-            std::string filepath = "." + req.path;
-            
-            // Default to index.html if root
-            if (req.path == "/") filepath = "./index.html";
-            if (req.path == "/dashboard") filepath = "./dashboard.html"; // Clean URL mapping
-            
-            // Check if file exists
-            struct stat buffer;
-            if (stat(filepath.c_str(), &buffer) == 0) {
-                // If special CGI path
-                if (req.path == "/time") {
-                     response_body = exec_cgi();
-                     status_line = "HTTP/1.1 200 OK\r\n";
-                     response_headers = "Content-Type: text/html\r\n";
-                } 
-                else {
+            // Check for CGI route FIRST (before file checks)
+            if (req.path == "/time") {
+                response_body = exec_cgi();
+                status_line = "HTTP/1.1 200 OK\r\n";
+                response_headers = "Content-Type: text/html\r\n";
+            }
+            else {
+                std::string filepath = "." + req.path;
+                
+                // Default to index.html if root
+                if (req.path == "/") filepath = "./index.html";
+                if (req.path == "/dashboard") filepath = "./dashboard.html"; // Clean URL mapping
+                
+                // Check if file exists
+                struct stat buffer;
+                if (stat(filepath.c_str(), &buffer) == 0) {
                     // STANDARD STATIC FILE
                     response_body = load_file(filepath);
                     status_line = "HTTP/1.1 200 OK\r\n";
                     response_headers = "Content-Type: " + get_mime_type(filepath) + "\r\n";
+                } else {
+                    // 404
+                    response_body = "<h1>404 Not Found</h1>";
+                    status_line = "HTTP/1.1 404 Not Found\r\n";
+                    response_headers = "Content-Type: text/html\r\n";
                 }
-            } else {
-                // 404
-                response_body = "<h1>404 Not Found</h1>";
-                status_line = "HTTP/1.1 404 Not Found\r\n";
-                response_headers = "Content-Type: text/html\r\n";
             }
         }
         else {
@@ -340,7 +364,7 @@ int main(){
 
             }
             
-            // === CASE B: DATA RECEIVED (YOUR OLD LOGIC GOES HERE) ===
+            // === CASE B: DATA RECEIVED ===
             // If a "client_fd" woke up, it means they sent a request.
             else {
                 int client_fd = events[i].data.fd;
