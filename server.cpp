@@ -203,8 +203,7 @@ void handle_client(int client_fd) {
         }
         // API: DELETE File
         else if (req.method == "DELETE") {
-            // SECURITY WARNING: In prod, you must sanitize this path to prevent deleting /etc/passwd!
-            // For now, we assume the user provides a local filename like "/uploaded_data.txt"
+            // TODO: sanitize this path to prevent deleting /etc/passwd!
             std::string filename = "." + req.path; // "/file.txt" -> "./file.txt"
             
             if (remove(filename.c_str()) == 0) {
