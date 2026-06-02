@@ -297,10 +297,11 @@ int main(){
   // links the "server_fd" to the address config 
   if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0){
     std::cerr << "Bind failed. Is port " << PORT <<  " busy?\n";
-    std::cout << "Switching to port " << PORT << "\n";
-    PORT = 3000;
-    // return 1;
-  }
+    std::cerr << "Make sure that it is not busy. Exiting the program ...";
+    return 1;
+  } 
+
+
 
   // Listen 
   if (listen(server_fd, 10) < 0){
@@ -322,6 +323,8 @@ int main(){
     if (client_fd < 0){
         throw std::runtime_error("accept failed");
     }
+
+    // handle_client(client_fd);
 }
 
 
