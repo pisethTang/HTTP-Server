@@ -1,0 +1,12 @@
+{
+  "name": "titan-http-server-ui",
+  "version": "1.0.0",
+  "description": "Frontend UI for the Titan HTTP server",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

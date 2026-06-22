@@ -10,3 +10,7 @@ uploaded_data.txt
 
 # Don't copy README (optional, but saves space)
 *.md
+
+# Don't copy local Node.js dependencies or build output (we'll rebuild them)
+node_modules
+dist

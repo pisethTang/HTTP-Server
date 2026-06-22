@@ -11,32 +11,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'JetBrains Mono', 'Courier New', 'Monaco', monospace; }
-        code, .font-mono { font-family: 'JetBrains Mono', monospace; }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .loading {
-            animation: spin 1s linear infinite;
-        }
-    </style>
 </head>
-<body class="bg-gray-900 text-gray-100">
+<body class="bg-gray-900 text-gray-100 font-['JetBrains_Mono',_'Courier_New',_Monaco,_monospace]">
     <div class="max-w-6xl mx-auto p-5">
         <!-- Hero Section -->
         <div class="text-center bg-gray-800 border-b-2 border-gray-700 py-12 px-6 mb-8 rounded-lg">
             <h1 class="text-5xl font-bold text-white mb-3">⚡ TITAN HTTP Server</h1>
             <p class="text-xl text-gray-300 mb-6">A Simplified Web Server Built Using Raw Linux System Calls</p>
-            
+
             <div class="max-w-3xl mx-auto text-left bg-gray-900 border border-gray-700 rounded-lg p-6 mb-6">
                 <p class="text-gray-300 mb-3">
-                    <strong class="text-white">Description:</strong> This is a fully functional HTTP/1.1 server 
-                    that handles <strong class="text-white">thousands of concurrent connections</strong> using the same Linux kernel APIs (epoll, fork, pipe, sendfile), and systems programming fundamentals as nginx, Node.js, and Redis. 
+                    <strong class="text-white">Description:</strong> This is a fully functional HTTP/1.1 server
+                    that handles <strong class="text-white">thousands of concurrent connections</strong> using the same Linux kernel APIs (epoll, fork, pipe, sendfile), and systems programming fundamentals as nginx, Node.js, and Redis.
                 </p>
             </div>
-            
+
             <div class="mt-6 flex flex-wrap justify-center gap-2">
                 <span class="inline-block bg-gray-700 text-gray-200 px-3 py-2 rounded text-sm font-medium">🔧 Raw Linux Syscalls</span>
                 <span class="inline-block bg-gray-700 text-gray-200 px-3 py-2 rounded text-sm font-medium">⚡ epoll Event Loop</span>
@@ -50,10 +39,13 @@
         <div class="bg-gray-800 border border-gray-700 rounded-lg p-8 mb-5">
             <h2 class="text-2xl font-semibold text-white mb-4">📊 Live Server Statistics</h2>
             <div class="bg-gray-900 border-l-4 border-gray-600 p-4 my-4 rounded">
-                <strong class="text-gray-200">What's happening:</strong> These metrics update by polling the <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">/stats</code> JSON endpoint. 
+                <strong class="text-gray-200">What's happening:</strong> These metrics update by polling the <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">/stats</code> JSON endpoint.
                 The server tracks active connections using <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">epoll</code> and handles requests via a 4-thread pool.
                 <br><br>
                 <strong class="text-gray-200">🔥 Live Stress Testing:</strong> <span class="text-gray-300">Click "Start Test" to trigger real load testing! The server uses <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">curl + xargs -P 100</code> to send 100 parallel requests, bypassing browser limitations. As this was deployed on Railway, stress tests are capped at 500 requests to respect platform rate limits ... </span>
+            </div>
+            <div id="railway-warning" class="hidden bg-yellow-900 border border-yellow-700 text-yellow-100 p-3 rounded mb-4 text-sm">
+                ⚠️ Railway deployment detected: stress test options limited to 10, 100, and 500 requests.
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-5">
                 <div class="bg-gray-900 border border-gray-700 p-5 rounded-lg text-center">
@@ -84,8 +76,8 @@
                         <option value="10000">10K requests</option>
                     </select>
                     <div class="flex gap-2 justify-center">
-                        <button onclick="startStressTest()" id="stress-start-btn" class="bg-orange-700 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-orange-800 transition-colors">Start Test</button>
-                        <button onclick="stopStressTest()" id="stress-stop-btn" class="bg-gray-700 text-gray-300 px-3 py-1.5 rounded text-xs font-medium hover:bg-gray-600 transition-colors" disabled>Stop Test</button>
+                        <button id="stress-start-btn" class="bg-orange-700 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-orange-800 transition-colors">Start Test</button>
+                        <button id="stress-stop-btn" class="bg-gray-700 text-gray-300 px-3 py-1.5 rounded text-xs font-medium hover:bg-gray-600 transition-colors" disabled>Stop Test</button>
                     </div>
                 </div>
             </div>
@@ -99,7 +91,7 @@
                 Data is written to disk and persisted in <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">uploaded_data.txt</code>.
             </div>
             <textarea id="upload-content" rows="4" class="w-full p-3 bg-gray-900 border-2 border-gray-700 text-gray-200 rounded-md font-mono text-sm resize-y focus:outline-none focus:border-gray-600" placeholder="Type anything here... (Try JSON, code snippets, or text)">{"message": "Testing HTTP POST from browser", "timestamp": "2026-02-08"}</textarea>
-            <button onclick="uploadFile()" class="mt-4 bg-green-700 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-green-800">📤 Upload to Server</button>
+            <button id="upload-btn" class="mt-4 bg-green-700 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-green-800">📤 Upload to Server</button>
             <div id="upload-response" class="bg-gray-900 border-2 border-gray-700 rounded-md p-4 mt-4 font-mono text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto hidden"></div>
         </div>
 
@@ -107,11 +99,11 @@
         <div class="bg-gray-800 border border-gray-700 rounded-lg p-8 mb-5">
             <h2 class="text-2xl font-semibold text-white mb-4 flex items-center gap-2">🐍 Feature #2: CGI (Common Gateway Interface)</h2>
             <div class="bg-gray-900 border-l-4 border-gray-600 p-4 my-4 rounded">
-                <strong class="text-gray-200">Systems Concept:</strong> This triggers <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">fork()</code>, <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">execve()</code>, and <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">pipe()</code> syscalls to execute 
+                <strong class="text-gray-200">Systems Concept:</strong> This triggers <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">fork()</code>, <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">execve()</code>, and <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">pipe()</code> syscalls to execute
                 <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">time_server.py</code> as a child process. The output is captured via inter-process communication and returned as HTML.
                 <br><strong class="text-gray-200">Warning:</strong> This demo intentionally includes a 10-second <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">sleep()</code> to show the thread pool handling blocking I/O without freezing the server.
             </div>
-            <button onclick="executeCGI()" class="bg-green-700 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-green-800">🐍 Run Python Script (10s blocking demo)</button>
+            <button id="cgi-btn" class="bg-green-700 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-green-800">🐍 Run Python Script (10s blocking demo)</button>
             <div id="cgi-response" class="bg-gray-900 border-2 border-gray-700 rounded-md p-4 mt-4 font-mono text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto hidden"></div>
         </div>
 
@@ -123,7 +115,7 @@
                 This demonstrates RESTful API implementation at a low level.
             </div>
             <input type="text" id="delete-path" value="/uploaded_data.txt" placeholder="/filename.txt" class="w-full p-3 bg-gray-900 border-2 border-gray-700 text-gray-200 rounded-md font-mono text-sm focus:outline-none focus:border-gray-600">
-            <button onclick="deleteFile()" class="mt-4 bg-red-700 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-red-800">🗑️ DELETE File</button>
+            <button id="delete-btn" class="mt-4 bg-red-700 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-red-800">🗑️ DELETE File</button>
             <div id="delete-response" class="bg-gray-900 border-2 border-gray-700 rounded-md p-4 mt-4 font-mono text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto hidden"></div>
         </div>
 
@@ -134,31 +126,31 @@
                 <strong class="text-gray-200">Systems Concept:</strong> The server manually parses and sets HTTP <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">Set-Cookie</code> headers for stateful session tracking.
                 This demonstrates understanding of HTTP's stateless nature and client-side storage.
             </div>
-            <button onclick="checkCookies()" class="bg-green-700 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-green-800">🍪 Check My Session</button>
+            <button id="cookie-btn" class="bg-green-700 text-white px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-green-800">🍪 Check My Session</button>
             <div id="cookie-display" class="bg-yellow-900 border border-yellow-700 text-yellow-100 p-2.5 rounded font-mono text-sm mt-4 hidden"></div>
         </div>
 
         <!-- Technical Architecture -->
         <div class="bg-gray-800 border border-gray-700 rounded-lg p-8 mb-5">
             <h2 class="text-2xl font-semibold text-white mb-4">🏗️ How This Compares to Production Servers</h2>
-            
+
             <div class="bg-gray-900 border-l-4 border-gray-600 p-4 my-4 rounded mb-5">
-                <strong class="text-gray-200">Context:</strong> <span class="text-gray-300">This is a <strong class="text-white">HTTP/1.1 web server</strong> — the same category as <strong class="text-white">nginx</strong>, <strong class="text-white">Apache</strong>, and the HTTP layer inside <strong class="text-white">Node.js</strong>. 
+                <strong class="text-gray-200">Context:</strong> <span class="text-gray-300">This is a <strong class="text-white">HTTP/1.1 web server</strong> — the same category as <strong class="text-white">nginx</strong>, <strong class="text-white">Apache</strong>, and the HTTP layer inside <strong class="text-white">Node.js</strong>.
                 It accepts TCP connections, parses HTTP requests, serves files, and executes backend scripts.</span>
                 <br><br>
-                <strong class="text-gray-200">What makes this different:</strong> <span class="text-gray-300">Most developers use high-level libraries (Express.js, Flask, Spring Boot) that <em>hide</em> how HTTP actually works. 
+                <strong class="text-gray-200">What makes this different:</strong> <span class="text-gray-300">Most developers use high-level libraries (Express.js, Flask, Spring Boot) that <em>hide</em> how HTTP actually works.
                 This implementation exposes the raw Linux kernel APIs that <em>all</em> servers ultimately rely on.</span>
             </div>
 
             <h3 class="text-xl font-semibold text-white mt-6 mb-4">📚 Technical Implementation Breakdown</h3>
-            
+
             <div class="bg-gray-900 border border-gray-700 p-5 rounded-md border-l-4 border-l-gray-600 mb-4">
                 <h3 class="text-white mb-2.5 text-lg font-semibold">🔧 epoll Event Loop (Like Node.js's libuv, Redis's Event Loop)</h3>
                 <p class="mb-2.5 text-gray-300">
                     <strong class="text-gray-200">What it does:</strong> Monitors thousands of network sockets simultaneously without blocking the CPU.
                 </p>
                 <p class="mb-2.5 text-gray-300">
-                    <strong class="text-gray-200">How it works:</strong> Uses Linux's <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">epoll_wait()</code> syscall in <strong>edge-triggered mode</strong>. 
+                    <strong class="text-gray-200">How it works:</strong> Uses Linux's <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">epoll_wait()</code> syscall in <strong>edge-triggered mode</strong>.
                     When data arrives on any socket, the kernel wakes up the process instantly. O(1) complexity — unlike <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">select()</code> which is O(n).
                 </p>
                 <p class="text-gray-400 text-sm">
@@ -172,7 +164,7 @@
                     <strong class="text-gray-200">What it does:</strong> Pre-allocates 4 worker threads to handle slow operations (disk I/O, script execution) without freezing the main event loop.
                 </p>
                 <p class="mb-2.5 text-gray-300">
-                    <strong class="text-gray-200">How it works:</strong> Producer-Consumer pattern using <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">std::mutex</code> and <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">std::condition_variable</code>. 
+                    <strong class="text-gray-200">How it works:</strong> Producer-Consumer pattern using <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">std::mutex</code> and <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">std::condition_variable</code>.
                     Tasks are queued, and idle threads pick them up. Avoids the overhead of <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">fork()</code>-ing a new process per request (like old CGI).
                 </p>
                 <p class="text-gray-400 text-sm">
@@ -186,7 +178,7 @@
                     <strong class="text-gray-200">What it does:</strong> Streams files from disk to network socket without copying data into user-space memory.
                 </p>
                 <p class="mb-2.5 text-gray-300">
-                    <strong class="text-gray-200">How it works:</strong> Traditional I/O: <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">read(file) → copy to buffer → write(socket)</code> (4 context switches, 2 copies). 
+                    <strong class="text-gray-200">How it works:</strong> Traditional I/O: <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">read(file) → copy to buffer → write(socket)</code> (4 context switches, 2 copies).
                     <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">sendfile()</code>: Kernel transfers data directly from page cache to TCP buffer (2 context switches, 0 copies).
                 </p>
                 <p class="text-gray-400 text-sm">
@@ -200,7 +192,7 @@
                     <strong class="text-gray-200">What it does:</strong> Executes Python scripts as separate processes and captures their output.
                 </p>
                 <p class="mb-2.5 text-gray-300">
-                    <strong class="text-gray-200">How it works:</strong> Uses <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">fork()</code> to clone the server process, <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">pipe()</code> to create an IPC channel, 
+                    <strong class="text-gray-200">How it works:</strong> Uses <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">fork()</code> to clone the server process, <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">pipe()</code> to create an IPC channel,
                     <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">dup2()</code> to redirect stdout into the pipe, and <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">execve()</code> to replace the child process with Python. Parent reads the pipe.
                 </p>
                 <p class="text-gray-400 text-sm">
@@ -222,8 +214,8 @@
             <h3 class="text-xl font-semibold text-white mt-8 mb-4">💡 More remarks on Generic HTTP Servers</h3>
             <div class="bg-gray-900 border-l-4 border-gray-600 p-4 my-4 rounded">
                 <p class="mb-2.5 text-gray-300">
-                    An <strong class="text-gray-200">HTTP server</strong> is just software that speaks the HTTP protocol — it's not tied to any specific use case. 
-                    nginx is an HTTP server (used for static files, reverse proxy). Apache is an HTTP server (used for hosting websites). 
+                    An <strong class="text-gray-200">HTTP server</strong> is just software that speaks the HTTP protocol — it's not tied to any specific use case.
+                    nginx is an HTTP server (used for static files, reverse proxy). Apache is an HTTP server (used for hosting websites).
                     Node.js <em>contains</em> an HTTP server (the <code class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-sm border border-gray-600 font-mono">http</code> module). Even REST APIs are HTTP servers.
                 </p>
             </div>
@@ -231,6 +223,6 @@
 
     </div>
 
-    <script src="/app.js"></script>
+    <script type="module" src="/dist/app.js"></script>
 </body>
 </html>
